@@ -259,3 +259,50 @@ deux côtés — assumé en fonction de l'objectif.
   arbitrage mémoire vs SQL ci-dessous, qui reste valide).
 - Max de stop_times par trip : 34 — confirme que "le trip le plus
   complet" est une notion bornée et bon marché à calculer.
+
+## Déploiement
+
+VPS OVH existant (tf89.fr), déjà géré par un repo Ansible séparé
+(tf89-infra) avec un pattern établi pour déployer une app par
+sous-domaine + port local dédié (convention : 8080 = copro-health-map,
+8081 = train-routes-explorer). Décision : suivre ce pattern plutôt que
+d'introduire une autre approche (Vercel, Deno Deploy...) — cohérence
+avec l'infra personnelle existante.
+
+### Un seul port exposé
+
+Le reverse-proxy Nginx de tf89-infra route par sous-domaine vers un
+port local unique, sans découpage de chemin. Décision : le serveur
+Deno sert lui-même le front buildé (web/dist) pour tout ce qui n'est
+pas /api/*, plutôt que d'ajouter un Nginx/Caddy interne au compose ou
+de modifier le template partagé de tf89-infra pour un besoin propre à
+cette app.
+
+### Migrations et ingestion non automatisées
+
+Décision : `docker compose up` ne fait que démarrer les conteneurs.
+Migrations (`db:migrate`) et ingestion GTFS restent des commandes
+manuelles post-déploiement, sur le modèle de l'import CSV optionnel de
+copro-health-map (docker cp + docker compose exec). Évite d'automatiser
+une opération destructive (truncate + réingestion) à chaque déploiement.
+
+### Pièges découverts en déployant (2026-07-30)
+
+- **Volume Postgres 18+** : l'image officielle attend un montage sur
+  /var/lib/postgresql (pas .../data comme sur les versions antérieures),
+  sinon elle refuse de démarrer en trouvant des données "non reconnues"
+  à l'ancien emplacement. Invisible en local (Postgres tourne en natif,
+  pas en conteneur) — découvert seulement au déploiement.
+- **Chemins relatifs et working directory en conteneur** : un chemin
+  relatif ("./web/dist") s'est révélé résolu différemment dans le
+  conteneur qu'en local, très probablement à cause du script d'entrée
+  de l'image denoland/deno (tini + docker-entrypoint.sh) qui ne garantit
+  pas le même cwd que WORKDIR. Fix : dériver les chemins de fichiers
+  runtime via `import.meta.url` plutôt qu'un chemin relatif nu — fiable
+  quel que soit le cwd du process.
+- **Modules chargés dynamiquement par maplibre-gl** : la lib calcule
+  l'URL de son worker (et d'un second module "shared") au runtime via
+  une construction de chaîne, pas un import statique — Vite ne peut pas
+  les détecter et ne les inclut donc jamais dans le build de prod. Fix :
+  script `prebuild` qui les copie depuis node_modules vers public/assets/
+  avant chaque build.

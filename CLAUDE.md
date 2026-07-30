@@ -61,6 +61,26 @@ GTFS → modèle métier.
   Docker. `DATABASE_URL` pointe sur `localhost:5432`. Créer la base une
   fois : `createdb train_routes_explorer`.
 
+## Déploiement
+- VPS OVH (Debian), géré par le repo séparé `tf89-infra` (Ansible).
+  https://train-routes-explorer.tf89.fr, port local 8081.
+- Docker Compose (postgres + app). Un seul port exposé : le serveur
+  Deno sert /api/routes ET le front buildé (web/dist) sur le même port,
+  pas de découpage côté reverse-proxy.
+- Migrations et ingestion GTFS : étapes manuelles post-déploiement
+  (deno task db:migrate, puis docker cp + deno task ingest), pas
+  automatisées dans le compose.
+- Pièges rencontrés :
+  - Image postgres:18+ : volume à monter sur /var/lib/postgresql, pas
+    /var/lib/postgresql/data (changement de convention depuis la v18).
+  - Chemins relatifs non fiables dans le conteneur (working directory
+    différent de WORKDIR selon l'entrypoint de l'image denoland/deno) :
+    toujours dériver les chemins de fichiers via import.meta.url, pas
+    de chemin relatif nu.
+  - maplibre-gl charge dynamiquement 2 fichiers (worker + shared) que
+    Vite ne détecte pas au build ; copiés manuellement en prebuild
+    (voir app/web/package.json).
+
 ## Commandes
 Toutes les commandes back/front s'exécutent depuis `app/` (racine du code,
 `deno.json` y vit) :

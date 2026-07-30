@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "mkdir -p public/assets && cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/assets/maplibre-gl-worker.mjs",
+    "prebuild": "mkdir -p public/assets && cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs public/assets/",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",

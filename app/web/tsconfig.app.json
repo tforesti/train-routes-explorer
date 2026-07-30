@@ -11,6 +11,11 @@
       "@/*": ["./src/*"]
     },
 
+    // @vue/tsconfig sets "types": [] to avoid polluting the global scope
+    // (e.g. accidental Node.js types). Opt back in explicitly for the
+    // ambient GeoJSON.* namespace used in MapView.vue.
+    "types": ["geojson"],
+
     // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.
     // Specified here to keep it out of the root directory.
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"

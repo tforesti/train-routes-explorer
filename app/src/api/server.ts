@@ -2,7 +2,7 @@ import { serveDir } from "@std/http/file-server";
 import { handleGetRoutes } from "./handlers/getRoutes.ts";
 import { isPreflight, withCors } from "./cors.ts";
 
-const STATIC_ROOT = "./web/dist";
+const STATIC_ROOT = new URL("../../web/dist", import.meta.url).pathname;
 
 async function handler(request: Request): Promise<Response> {
   if (isPreflight(request)) {

@@ -6,9 +6,6 @@ export async function handleGetRoutes(_request: Request): Promise<Response> {
 
   return new Response(JSON.stringify(result), {
     status: 200,
-    headers: {
-      "content-type": "application/json",
-      "cache-control": "no-store",
-    },
+    headers: { "content-type": "application/json" },
   });
 }

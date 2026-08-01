@@ -72,76 +72,78 @@ onMounted(async () => {
     zoom: 5,
   })
 
-  const routes = await fetchRoutes()
+  const mapLoaded = new Promise<void>((resolve) => {
+    map.on('load', () => resolve())
+  })
 
-  map.on('load', () => {
-    map.addSource('routes', { type: 'geojson', data: toRoutesGeoJson(routes) })
-    map.addLayer({
-      id: 'routes-layer',
-      type: 'line',
-      source: 'routes',
-      paint: { 'line-color': '#0074D9', 'line-width': 2 },
-    })
+  const [routes] = await Promise.all([fetchRoutes(), mapLoaded])
 
-    map.addSource('stations', { type: 'geojson', data: toStationsGeoJson(routes) })
-    map.addLayer({
-      id: 'stations-layer',
-      type: 'circle',
-      source: 'stations',
-      paint: { 'circle-radius': 3, 'circle-color': '#FF4136' },
-    })
-    map.addLayer({
-      id: 'stations-labels',
-      type: 'symbol',
-      source: 'stations',
-      minzoom: 8,
-      layout: {
-        'text-field': ['get', 'name'],
-        'text-size': 11,
-        'text-offset': [0, 1.2],
-        'text-anchor': 'top',
-      },
-      paint: {
-        'text-color': '#111111',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 1,
-      },
-    })
+  map.addSource('routes', { type: 'geojson', data: toRoutesGeoJson(routes) })
+  map.addLayer({
+    id: 'routes-layer',
+    type: 'line',
+    source: 'routes',
+    paint: { 'line-color': '#0074D9', 'line-width': 2 },
+  })
 
-    const popup = new Popup({ closeButton: false, closeOnClick: false })
+  map.addSource('stations', { type: 'geojson', data: toStationsGeoJson(routes) })
+  map.addLayer({
+    id: 'stations-layer',
+    type: 'circle',
+    source: 'stations',
+    paint: { 'circle-radius': 3, 'circle-color': '#FF4136' },
+  })
+  map.addLayer({
+    id: 'stations-labels',
+    type: 'symbol',
+    source: 'stations',
+    minzoom: 8,
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-size': 11,
+      'text-offset': [0, 1.2],
+      'text-anchor': 'top',
+    },
+    paint: {
+      'text-color': '#111111',
+      'text-halo-color': '#ffffff',
+      'text-halo-width': 1,
+    },
+  })
 
-    map.on('mouseenter', 'stations-layer', (e) => {
-      map.getCanvas().style.cursor = 'pointer'
-      const feature = e.features?.[0]
-      if (!feature) return
-      const properties = feature.properties as { name: string; routeNames: string }
-      const coordinates = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number]
-      popup
-        .setLngLat(coordinates)
-        .setHTML(`<strong>${properties.name}</strong><br>${properties.routeNames}`)
-        .addTo(map)
-    })
+  const popup = new Popup({ closeButton: false, closeOnClick: false })
 
-    map.on('mouseleave', 'stations-layer', () => {
-      map.getCanvas().style.cursor = ''
-      popup.remove()
-    })
+  map.on('mouseenter', 'stations-layer', (e) => {
+    map.getCanvas().style.cursor = 'pointer'
+    const feature = e.features?.[0]
+    if (!feature) return
+    const properties = feature.properties as { name: string; routeNames: string }
+    const coordinates = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number]
+    popup
+      .setLngLat(coordinates)
+      .setHTML(`<strong>${properties.name}</strong><br>${properties.routeNames}`)
+      .addTo(map)
+  })
 
-    map.on('mouseenter', 'routes-layer', (e) => {
-      map.getCanvas().style.cursor = 'pointer'
-      const feature = e.features?.[0]
-      if (!feature) return
-      const properties = feature.properties as { name: string; origin: string; destination: string }
-      popup
-        .setLngLat(e.lngLat)
-        .setHTML(`<strong>${properties.name}</strong><br>${properties.origin} → ${properties.destination}`)
-        .addTo(map)
-    })
+  map.on('mouseleave', 'stations-layer', () => {
+    map.getCanvas().style.cursor = ''
+    popup.remove()
+  })
 
-    map.on('mouseleave', 'routes-layer', () => {
-      map.getCanvas().style.cursor = ''
-      popup.remove()
-    })
+  map.on('mouseenter', 'routes-layer', (e) => {
+    map.getCanvas().style.cursor = 'pointer'
+    const feature = e.features?.[0]
+    if (!feature) return
+    const properties = feature.properties as { name: string; origin: string; destination: string }
+    popup
+      .setLngLat(e.lngLat)
+      .setHTML(`<strong>${properties.name}</strong><br>${properties.origin} → ${properties.destination}`)
+      .addTo(map)
+  })
+
+  map.on('mouseleave', 'routes-layer', () => {
+    map.getCanvas().style.cursor = ''
+    popup.remove()
   })
 })
 </script>

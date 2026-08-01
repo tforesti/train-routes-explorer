@@ -16,7 +16,13 @@ async function handler(request: Request): Promise<Response> {
     return withCors(response);
   }
 
-  return serveDir(request, { fsRoot: STATIC_ROOT, showDirListing: false });
+  const response = await serveDir(request, { fsRoot: STATIC_ROOT, showDirListing: false });
+
+  if (!url.pathname.startsWith("/assets/")) {
+    response.headers.set("Cache-Control", "no-cache");
+  }
+
+  return response;
 }
 
 Deno.serve({ port: 8000 }, handler);
